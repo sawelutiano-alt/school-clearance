@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mvumi Makulu Secondary School - Student Clearance System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Signature Pad JS -->
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <!-- html2pdf.js for Client-side PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-navy: #0f2c59;
+            --accent-gold: #d4af37;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+        }
+
+        /* Branding Navbar */
+        .navbar-brand-custom {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: #ffffff !important;
+            letter-spacing: 0.5px;
+        }
+
+        .mmss-logo-badge {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #0f2c59, #1b4985);
+            border: 2px solid var(--accent-gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-gold);
+            font-weight: 900;
+            font-size: 1rem;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        /* Card Customization */
+        .custom-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: #ffffff;
+            margin-bottom: 24px;
+        }
+
+        .custom-card-header {
+            background-color: var(--primary-navy);
+            color: white;
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+            padding: 14px 20px;
+            font-weight: 600;
+        }
+
+        /* Signature Canvas */
+        .signature-wrapper {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background-color: #fafafa;
+            position: relative;
+            text-align: center;
+        }
+
+        canvas.signature-pad {
+            width: 100%;
+            height: 140px;
+            cursor: crosshair;
+        }
+
+        /* Exact Table Style from Image */
+        .section-header-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #212529;
+            text-transform: uppercase;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+
+        .cert-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin-top: 5px;
+            background-color: #ffffff;
+        }
+
+        .cert-table th, .cert-table td {
+            border: 1px solid #dcdfe3;
+            padding: 8px 12px;
+            vertical-align: middle;
+        }
+
+        .cert-table th {
+            background-color: #f0f4f8;
+            color: #2c3e50;
+            font-weight: 700;
+            font-size: 0.78rem;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+
+        .status-text-approved {
+            color: #0d8a52;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .status-text-pending {
+            color: #d97706;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .sig-cell-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sig-img {
+            max-height: 28px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+
+        .sig-timestamp {
+            font-size: 0.68rem;
+            color: #8898aa;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        /* A4 Single Page Print Optimization */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableCertificateSection, #printableCertificateSection * {
+                visibility: visible;
+            }
+            #printableCertificateSection {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 10px !important;
+                box-shadow: none !important;
+                background: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 6mm;
+            }
+        }
+
+        /* Compact Certificate Container */
+        .cert-container {
+            border: 2px solid #333;
+            padding: 18px;
+            background: #fff;
+            max-width: 850px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .cert-header {
+            text-align: center;
+            border-bottom: 2px solid #0f2c59;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .cert-header h2 {
+            color: var(--primary-navy);
+            font-weight: 800;
+            margin: 0;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cert-header h4 {
+            color: #555;
+            font-size: 1rem;
+            margin-top: 3px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: rgba(15, 44, 89, 0.03);
+            pointer-events: none;
+            white-space: nowrap;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top no-print" style="background-color: var(--primary-navy);">
+        <div class="container-fluid">
+            <a class="navbar-brand navbar-brand-custom" href="#">
+                <div class="mmss-logo-badge">MMSS</div>
+                <div>
+                    <div style="font-size: 1.1rem; line-height: 1.1;">MVUMI MAKULU SECONDARY SCHOOL</div>
+                    <small style="font-size: 0.72rem; color: var(--accent-gold); font-weight: 400;">Online Student Clearance Portal</small>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto ms-lg-4">
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm me-2 my-1" id="btnRoleStudent" onclick="switchRole('STUDENT')">
+                            <i class="fas fa-user-graduate me-1"></i> Student View
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm me-2 my-1" id="btnRoleStaff" onclick="openStaffRoleModal()">
+                            <i class="fas fa-user-tie me-1"></i> Department Login
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-warning btn-sm my-1" id="btnRoleAdmin" onclick="openAdminAuthModal()">
+                            <i class="fas fa-user-shield me-1"></i> Admin Portal
+                        </button>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="badge bg-warning text-dark me-3 p-2" id="currentRoleDisplay">
+                        <i class="fas fa-eye me-1"></i> Role: Student
+                    </span>
+                    <button class="btn btn-danger btn-sm" onclick="purgeAllData()">
+                        <i class="fas fa-trash-alt me-1"></i> Purge & Reset Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <div class="container-fluid py-4 no-print">
+        
+        <div class="row">
+            <!-- Left Column: Actions / Forms / Approvals -->
+            <div class="col-lg-6">
+                
+                <!-- STUDENT VIEW: Application Form -->
+                <div id="studentFormSection" class="card custom-card">
+                    <div class="card-header custom-card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-file-signature me-2"></i> Submit New Clearance Application</span>
+                        <span class="badge bg-light text-dark">Step 1</span>
+                    </div>
+                    <div class="card-body">
+                        <form id="clearanceForm" onsubmit="handleFormSubmission(event)">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Student Full Name *</label>
+                                    <input type="text" id="studentName" class="form-control" placeholder="e.g. Sawe Lutiano" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Sex *</label>
+                                    <select id="studentSex" class="form-select" required>
+                                        <option value="">Select...</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Academic Year *</label>
+                                    <input type="text" id="academicYear" class="form-control" value="2025/2026" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Submission Date *</label>
+                                    <input type="date" id="submissionDate" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Email Address *</label>
+                                    <input type="email" id="studentEmail" class="form-control" placeholder="sawelutiano@gmail.com" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">WhatsApp / Phone *</label>
+                                    <input type="tel" id="studentContact" class="form-control" placeholder="+255775553944" required>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold" style="background-color: var(--primary-navy);">
+                                        <i class="fas fa-paper-plane me-2"></i> Submit Clearance Form
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- DEPARTMENT APPROVER VIEW -->
+                <div id="departmentApprovalSection" class="card custom-card d-none">
+                    <div class="card-header custom-card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-check-double me-2"></i> Department Approval Panel</span>
+                        <span class="badge bg-light text-dark" id="deptBadgeDisplay">Department</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="noPendingAlert" class="alert alert-secondary text-center py-4">
+                            <i class="fas fa-inbox fa-3x mb-2 text-muted"></i>
+                            <p class="mb-0">No pending clearance applications awaiting your department's approval.</p>
+                        </div>
+
+                        <div id="pendingFormContainer" class="d-none">
+                            <div class="card border-primary mb-3">
+                                <div class="card-body bg-light">
+                                    <h5 class="card-title text-primary fw-bold" id="appStudentName">Student Name</h5>
+                                    <div class="row text-muted small mt-2">
+                                        <div class="col-6"><strong>Sex:</strong> <span id="appStudentSex"></span></div>
+                                        <div class="col-6"><strong>Academic Year:</strong> <span id="appAcademicYear"></span></div>
+                                        <div class="col-6"><strong>Email:</strong> <span id="appStudentEmail"></span></div>
+                                        <div class="col-6"><strong>Contact:</strong> <span id="appStudentContact"></span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Digital Signature Pad -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold d-flex justify-content-between">
+                                    <span>Provide Digital Signature *</span>
+                                    <a href="#" onclick="clearSignatureCanvas(event)" class="text-danger text-decoration-none small"><i class="fas fa-eraser"></i> Clear Canvas</a>
+                                </label>
+                                <div class="signature-wrapper">
+                                    <canvas id="signaturePad" class="signature-pad"></canvas>
+                                </div>
+                                <small class="text-muted">Draw your signature using touchscreen, mouse, or finger.</small>
+                            </div>
+
+                            <button onclick="approveCurrentStudent()" class="btn btn-success w-100 py-2 fw-bold">
+                                <i class="fas fa-file-signature me-2"></i> Approve & Sign Clearance Form
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN CONTROL VIEW -->
+                <div id="adminPanelSection" class="card custom-card d-none">
+                    <div class="card-header custom-card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-users-cog me-2"></i> Admin - Account Management</span>
+                        <span class="badge bg-dark text-white">System Admin</span>
+                    </div>
+                    <div class="card-body">
+                        <h5>Department Workflow Sequence</h5>
+                        <ol class="list-group list-group-numbered mb-3">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Class Teacher <span class="badge bg-primary">Step 1</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Head of Natural Science <span class="badge bg-secondary">Step 2</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Head of Social Science <span class="badge bg-secondary">Step 3</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Head of Language <span class="badge bg-secondary">Step 4</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Head of Sports & Games <span class="badge bg-secondary">Step 5</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Hostel Master <span class="badge bg-secondary">Step 6</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Academic Master <span class="badge bg-secondary">Step 7</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Head of School (HOS) <span class="badge bg-success">Step 8</span>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Registered Students List -->
+            <div class="col-lg-6">
+                <div class="card custom-card">
+                    <div class="card-header custom-card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-list-alt me-2"></i> Registered Students</span>
+                        <span class="badge bg-light text-dark" id="studentCountBadge">0 Students</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="emptyStudentsState" class="p-4 text-center text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-3 text-secondary"></i>
+                            <p class="mb-0">No student clearance records registered.<br>Submit the form on the left to add a student.</p>
+                        </div>
+                        <ul class="list-group list-group-flush" id="studentListGroup">
+                            <!-- Dynamically populated -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Official Certificate Preview / Printable Section -->
+    <div class="container py-2" id="certificatePreviewWrapper">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-2 text-center no-print bg-light border-bottom">
+                <span class="fw-bold me-3 text-secondary">Official Clearance Form Preview:</span>
+                <button class="btn btn-primary btn-sm me-2" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i> Print / Save PDF
+                </button>
+                <button class="btn btn-success btn-sm" onclick="downloadPDF()">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </button>
+            </div>
+            
+            <!-- OFFICIAL PRINTABLE A4 SINGLE PAGE SECTION -->
+            <div id="printableCertificateSection" class="cert-container">
+                <div class="watermark">MVUMI MAKULU SEC</div>
+                
+                <div class="cert-header">
+                    <div class="d-flex justify-content-center align-items-center gap-3 mb-1">
+                        <div class="mmss-logo-badge" style="width:50px; height:50px; font-size:1.2rem;">MMSS</div>
+                        <div>
+                            <h2>MVUMI MAKULU SECONDARY SCHOOL</h2>
+                            <h4>OFFICIAL STUDENT CLEARANCE FORM</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="certBodyContent">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-file-invoice fa-3x mb-2"></i>
+                        <p>Select a student from the registered list above to view their official single-page clearance report.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Staff Department Login Selection -->
+    <div class="modal fade no-print" id="staffLoginModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header text-white" style="background-color: var(--primary-navy);">
+                    <h5 class="modal-title text-white"><i class="fas fa-user-tie me-2"></i> Select Department Role</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-semibold">Choose department account:</label>
+                    <select id="staffDeptSelect" class="form-select form-select-lg mb-3">
+                        <option value="CLASS_TEACHER">1. Class Teacher</option>
+                        <option value="NATURAL_SCIENCE">2. Head of Natural Science</option>
+                        <option value="SOCIAL_SCIENCE">3. Head of Social Science</option>
+                        <option value="LANGUAGE">4. Head of Language</option>
+                        <option value="SPORTS_GAMES">5. Head of Sports & Games</option>
+                        <option value="HOSTEL">6. Hostel Master / Mistress</option>
+                        <option value="ACADEMIC">7. Academic Master</option>
+                        <option value="HOS">8. Head of School (HOS)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmStaffRole()" style="background-color: var(--primary-navy);">Login to Portal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Admin Authentication -->
+    <div class="modal fade no-print" id="adminAuthModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="fas fa-lock me-2"></i> Admin Authentication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="handleAdminLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Admin Username</label>
+                            <input type="text" id="adminUser" class="form-control" value="admin" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Admin Password</label>
+                            <input type="password" id="adminPass" class="form-control" value="password123" required>
+                        </div>
+                        <small class="text-muted">Default Credentials: <code>admin</code> / <code>password123</code></small>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold mt-3">Login as Administrator</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // Exact 8 Departments
+        const DEPARTMENTS = [
+            { id: 'CLASS_TEACHER', name: 'Class Teacher', title: 'Class Teacher' },
+            { id: 'NATURAL_SCIENCE', name: 'Natural Science Dept', title: 'Head of Natural Science' },
+            { id: 'SOCIAL_SCIENCE', name: 'Social Science Dept', title: 'Head of Social Science' },
+            { id: 'LANGUAGE', name: 'Language Dept', title: 'Head of Language' },
+            { id: 'SPORTS_GAMES', name: 'Sports & Games Dept', title: 'Head of Sports & Games' },
+            { id: 'HOSTEL', name: 'Hostel Dept', title: 'Hostel Master' },
+            { id: 'ACADEMIC', name: 'Academic Office', title: 'Academic Master' },
+            { id: 'HOS', name: 'Head of School (HOS)', title: 'Head of School' }
+        ];
+
+        let state = {
+            currentRole: 'STUDENT',
+            students: [],
+            selectedStudentId: null,
+            signaturePad: null
+        };
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById('submissionDate').valueAsDate = new Date();
+            loadSavedData();
+
+            const canvas = document.getElementById('signaturePad');
+            if (canvas) {
+                state.signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgba(255, 255, 255, 0)',
+                    penColor: 'rgb(15, 44, 89)'
+                });
+            }
+
+            renderUI();
+        });
+
+        function saveData() {
+            localStorage.setItem('mmss_clearance_students', JSON.stringify(state.students));
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('mmss_clearance_students');
+            if (saved) {
+                try {
+                    state.students = JSON.parse(saved);
+                } catch(e) {
+                    state.students = [];
+                }
+            }
+        }
+
+        function purgeAllData() {
+            if (confirm("Are you sure you want to purge all student records? This will reset the database.")) {
+                state.students = [];
+                state.selectedStudentId = null;
+                saveData();
+                renderUI();
+            }
+        }
+
+        function switchRole(role) {
+            state.currentRole = role;
+            const roleBadge = document.getElementById('currentRoleDisplay');
+            if (role === 'STUDENT') {
+                roleBadge.className = "badge bg-warning text-dark me-3 p-2";
+                roleBadge.innerHTML = `<i class="fas fa-eye me-1"></i> Role: Student`;
+            } else if (role === 'ADMIN') {
+                roleBadge.className = "badge bg-danger text-white me-3 p-2";
+                roleBadge.innerHTML = `<i class="fas fa-user-shield me-1"></i> Role: Administrator`;
+            } else {
+                const deptObj = DEPARTMENTS.find(d => d.id === role);
+                roleBadge.className = "badge bg-success text-white me-3 p-2";
+                roleBadge.innerHTML = `<i class="fas fa-user-check me-1"></i> Role: ${deptObj ? deptObj.name : role}`;
+            }
+            renderUI();
+        }
+
+        function openStaffRoleModal() {
+            const modal = new bootstrap.Modal(document.getElementById('staffLoginModal'));
+            modal.show();
+        }
+
+        function confirmStaffRole() {
+            const dept = document.getElementById('staffDeptSelect').value;
+            bootstrap.Modal.getInstance(document.getElementById('staffLoginModal')).hide();
+            switchRole(dept);
+        }
+
+        function openAdminAuthModal() {
+            const modal = new bootstrap.Modal(document.getElementById('adminAuthModal'));
+            modal.show();
+        }
+
+        function handleAdminLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('adminUser').value;
+            const pass = document.getElementById('adminPass').value;
+
+            if (user === 'admin' && pass === 'password123') {
+                bootstrap.Modal.getInstance(document.getElementById('adminAuthModal')).hide();
+                switchRole('ADMIN');
+            } else {
+                alert("Invalid Admin Credentials!");
+            }
+        }
+
+        function handleFormSubmission(event) {
+            event.preventDefault();
+            
+            const newStudent = {
+                id: 'STU-' + Date.now(),
+                fullName: document.getElementById('studentName').value,
+                sex: document.getElementById('studentSex').value,
+                academicYear: document.getElementById('academicYear').value,
+                date: document.getElementById('submissionDate').value,
+                email: document.getElementById('studentEmail').value,
+                contact: document.getElementById('studentContact').value,
+                currentStep: 0,
+                approvals: DEPARTMENTS.map(d => ({
+                    deptId: d.id,
+                    deptName: d.name,
+                    title: d.title,
+                    status: 'PENDING',
+                    signature: null,
+                    approvedAt: null
+                }))
+            };
+
+            state.students.unshift(newStudent);
+            state.selectedStudentId = newStudent.id;
+            saveData();
+            
+            document.getElementById('clearanceForm').reset();
+            document.getElementById('submissionDate').valueAsDate = new Date();
+            
+            alert("Clearance Application Submitted Successfully!");
+            renderUI();
+        }
+
+        function clearSignatureCanvas(e) {
+            if(e) e.preventDefault();
+            if (state.signaturePad) state.signaturePad.clear();
+        }
+
+        function approveCurrentStudent() {
+            if (state.signaturePad.isEmpty()) {
+                alert("Please provide your digital signature before approving.");
+                return;
+            }
+
+            const student = state.students.find(s => s.id === state.selectedStudentId);
+            if (!student) return;
+
+            const currentDeptIndex = student.currentStep;
+            const sigData = state.signaturePad.toDataURL();
+            
+            // Format Timestamp e.g. 10/28/2026 09:25 PM
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const formattedTime = `${dateStr} ${timeStr}`;
+
+            student.approvals[currentDeptIndex].status = 'APPROVED';
+            student.approvals[currentDeptIndex].signature = sigData;
+            student.approvals[currentDeptIndex].approvedAt = formattedTime;
+
+            if (student.currentStep < DEPARTMENTS.length - 1) {
+                student.currentStep += 1;
+            } else {
+                student.currentStep = DEPARTMENTS.length;
+            }
+
+            saveData();
+            state.signaturePad.clear();
+            alert("Student clearance form approved and forwarded!");
+            renderUI();
+        }
+
+        function renderUI() {
+            document.getElementById('studentFormSection').classList.add('d-none');
+            document.getElementById('departmentApprovalSection').classList.add('d-none');
+            document.getElementById('adminPanelSection').classList.add('d-none');
+
+            if (state.currentRole === 'STUDENT') {
+                document.getElementById('studentFormSection').classList.remove('d-none');
+            } else if (state.currentRole === 'ADMIN') {
+                document.getElementById('adminPanelSection').classList.remove('d-none');
+            } else {
+                document.getElementById('departmentApprovalSection').classList.remove('d-none');
+                const deptObj = DEPARTMENTS.find(d => d.id === state.currentRole);
+                document.getElementById('deptBadgeDisplay').innerText = deptObj ? deptObj.name : state.currentRole;
+                
+                const pendingStudent = state.students.find(s => {
+                    const stepIdx = DEPARTMENTS.findIndex(d => d.id === state.currentRole);
+                    return s.currentStep === stepIdx;
+                });
+
+                if (pendingStudent) {
+                    state.selectedStudentId = pendingStudent.id;
+                    document.getElementById('noPendingAlert').classList.add('d-none');
+                    document.getElementById('pendingFormContainer').classList.remove('d-none');
+                    
+                    document.getElementById('appStudentName').innerText = pendingStudent.fullName;
+                    document.getElementById('appStudentSex').innerText = pendingStudent.sex;
+                    document.getElementById('appAcademicYear').innerText = pendingStudent.academicYear;
+                    document.getElementById('appStudentEmail').innerText = pendingStudent.email;
+                    document.getElementById('appStudentContact').innerText = pendingStudent.contact;
+                } else {
+                    document.getElementById('noPendingAlert').classList.remove('d-none');
+                    document.getElementById('pendingFormContainer').classList.add('d-none');
+                }
+            }
+
+            renderStudentList();
+            renderCertificate();
+        }
+
+        function renderStudentList() {
+            const listGroup = document.getElementById('studentListGroup');
+            const emptyState = document.getElementById('emptyStudentsState');
+            const countBadge = document.getElementById('studentCountBadge');
+
+            countBadge.innerText = `${state.students.length} Student${state.students.length !== 1 ? 's' : ''}`;
+            listGroup.innerHTML = '';
+
+            if (state.students.length === 0) {
+                emptyState.classList.remove('d-none');
+                return;
+            } else {
+                emptyState.classList.add('d-none');
+            }
+
+            state.students.forEach(s => {
+                const isSelected = s.id === state.selectedStudentId;
+                const isCleared = s.currentStep >= DEPARTMENTS.length;
+                const currentDept = isCleared ? 'FULLY CLEARED' : DEPARTMENTS[s.currentStep].name;
+
+                const li = document.createElement('li');
+                li.className = `list-group-item list-group-item-action p-3 ${isSelected ? 'active' : ''}`;
+                li.style.cursor = 'pointer';
+                li.onclick = () => {
+                    state.selectedStudentId = s.id;
+                    renderUI();
+                };
+
+                li.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                        <h6 class="mb-0 fw-bold ${isSelected ? 'text-white' : 'text-primary'}">${s.fullName}</h6>
+                        <span class="badge ${isCleared ? 'bg-success' : 'bg-warning text-dark'}">
+                            ${isCleared ? 'Cleared' : 'Pending'}
+                        </span>
+                    </div>
+                    <small class="${isSelected ? 'text-white-50' : 'text-muted'} d-block mb-1">
+                        Year: ${s.academicYear} | Sex: ${s.sex}
+                    </small>
+                    <small class="${isSelected ? 'text-white' : 'text-secondary'} fw-semibold">
+                        <i class="fas fa-clock me-1"></i> Current Stage: ${currentDept}
+                    </small>
+                `;
+                listGroup.appendChild(li);
+            });
+        }
+
+        function renderCertificate() {
+            const certBody = document.getElementById('certBodyContent');
+            const selectedStudent = state.students.find(s => s.id === state.selectedStudentId);
+
+            if (!selectedStudent) {
+                certBody.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-file-invoice fa-3x mb-2"></i>
+                        <p>Select a student from the registered list above to view their official single-page clearance report.</p>
+                    </div>`;
+                return;
+            }
+
+            let rowsHTML = '';
+            selectedStudent.approvals.forEach(app => {
+                const isApproved = app.status === 'APPROVED';
+                rowsHTML += `
+                    <tr>
+                        <td style="font-weight: 700;">${app.deptName}</td>
+                        <td style="text-align: center;">
+                            <span class="${isApproved ? 'status-text-approved' : 'status-text-pending'}">
+                                ${isApproved ? 'APPROVED' : 'PENDING'}
+                            </span>
+                        </td>
+                        <td style="color: #4a5568;">${app.title}</td>
+                        <td style="text-align: center;">
+                            ${app.signature ? `
+                                <div class="sig-cell-content">
+                                    <img src="${app.signature}" class="sig-img" alt="Signature">
+                                    <div class="sig-timestamp">${app.approvedAt}</div>
+                                </div>
+                            ` : '<span class="text-muted" style="font-size:0.75rem;">---</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            certBody.innerHTML = `
+                <!-- Personal Info Header Grid -->
+                <table class="cert-table mb-2">
+                    <tr>
+                        <td style="width:33%;"><strong>Date:</strong> ${selectedStudent.date}</td>
+                        <td style="width:33%;"><strong>Email:</strong> ${selectedStudent.email}</td>
+                        <td style="width:34%;"><strong>Contact:</strong> ${selectedStudent.contact}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><strong>Student Name:</strong> ${selectedStudent.fullName}</td>
+                        <td><strong>Academic Year:</strong> ${selectedStudent.academicYear} | <strong>Sex:</strong> ${selectedStudent.sex}</td>
+                    </tr>
+                </table>
+
+                <!-- Exact Matching Heading -->
+                <div class="section-header-title">DEPARTMENTAL CLEARANCE APPROVALS & DIGITAL SIGNATURES</div>
+
+                <!-- Exact 4-Column Table -->
+                <table class="cert-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 32%;">DEPARTMENT NAME</th>
+                            <th style="width: 18%; text-align: center;">STATUS</th>
+                            <th style="width: 25%;">APPROVER TITLE</th>
+                            <th style="width: 25%; text-align: center;">SIGNATURE & DATE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('printableCertificateSection');
+            const opt = {
+                margin:       0.25,
+                filename:     'MMSS_Clearance_Form.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
